@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import './App.css';
 
 import Board from './Board';
@@ -18,7 +18,8 @@ const calculateNextBoard = (seeds, whence, howMany, turn, captures)=>{
   
   while(r){
     c = (c + 13) % 14;
-    if( (c === 7 && turn !== 'me') || (c === 0 && turn === 'me') ) c = (c+13) % 14;
+    if( (c === 7 && turn !== 'me') ||
+        (c === 0 && turn === 'me') ) c = (c+13) % 14;
 
     r--;
     nextSeeds[c]++;
@@ -45,12 +46,27 @@ const calculateNextBoard = (seeds, whence, howMany, turn, captures)=>{
   };
 };
 
+const calculateLegalMoves = (seeds, turn)=>
+  [...Array(14)].map((o, i)=> i)
+                .filter(i=> seeds[i] && isMine(turn, i));
+
+const initSeeds = [0, 4, 4, 4, 4, 4, 4, 0, 4, 4, 4, 4, 4, 4];
+
 function App() {
-  const [seeds, setSeeds] = useState([0, 4, 4, 4, 4, 4, 4, 0, 4, 4, 4, 4, 4, 4]);
+  const [seeds, setSeeds] = useState(initSeeds);
   const [turn, setTurn] = useState('me');
   const [animating, setAnimating] = useState(false);
+
+  const [score, setScore] = useState(null);
   
-  const playMove = (i)=>{
+  const reset = ()=>{
+    setSeeds(initSeeds);
+    setTurn('me');
+    setAnimating(false);
+    setScore(null);
+  };
+  
+  const playMove = useCallback((i)=>{
     if(
       animating ||
       !seeds[i] ||
@@ -73,19 +89,47 @@ function App() {
       
       setAnimating(false);
     }, 400 + 500 * seeds[i]);
-  };
+  }, [animating, seeds, turn]);
 
   useEffect(()=> {
     if(!animating) {
       // move just ended, it is now `turn`'s move
 
-      // if turn has no moves, game is over
+      const legalMoves = calculateLegalMoves(seeds, turn);
+      if( !legalMoves.length ) {
+        // if turn has no moves, game is over
+        const myScore = seeds.slice(7).reduce((p, c)=> p+c, 0);
+        const theirScore = seeds.slice(0, 7).reduce((p, c)=> p+c, 0);
+
+        setScore([myScore, theirScore]);
+
+      } else if( turn === 'them' ) {
+        const boardOutcomes = legalMoves
+          .map(i=> calculateNextBoard(seeds, i, seeds[i], turn, true));
+        const maxBank = Math.max(...boardOutcomes.map(bo=> bo.seeds[0]));
+        const maxBankMove = boardOutcomes.findIndex(bo=> bo.seeds[0] === maxBank);
+        
+        // const randomMoveIndex = Math.floor(
+        //   legalMoves.length * Math.random()
+        // );
+        
+        playMove( legalMoves[maxBankMove] );
+      }
     }
-  }, [animating, turn]);
+  }, [animating, turn, seeds, playMove]);
   
   return (
     <div className="App">
       <Board seeds={seeds} onClick={playMove} turn={turn}/>
+      {
+        !score ? null : (
+          <div className='winner'>
+            <div>{ score[0] > score[1] ? 'You' : 'The Opponent'} Won</div>
+            <div>You scored: { score[0] }; The Opponent scored {score[1]}</div>
+            <button onClick={reset}>Play Again</button>
+          </div>
+        )
+      }
     </div>
   );
 }

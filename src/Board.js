@@ -20,6 +20,7 @@ const Board = ({
                h={900}
                w={160}
         />
+        <title>{seeds[0]}</title>
       </g>
       
       {[0,1,2,3,4,5].map((i)=> (
@@ -37,6 +38,7 @@ const Board = ({
                   h={300}
                   w={160}
            />
+           <title>{seeds[i+1]}</title>
          </g>
        ))}
          
@@ -48,6 +50,7 @@ const Board = ({
                 h={900}
                 w={160}
          />
+         <title>{seeds[7]}</title>
        </g>
       
       {[0,1,2,3,4,5].map((i)=> (
@@ -66,6 +69,7 @@ const Board = ({
                   h={300}
                   w={160}
            />
+           <title>{seeds[i+8]}</title>
          </g>
        ))}
     </svg>
